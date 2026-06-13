@@ -795,9 +795,9 @@ jobs:
             USE_HASH="$GIT_HASH"
           fi
           if [[ -z "$CUSTOM_TAG" ]]; then
-            VERSION_FULL="2026.6.8@酷安AMXlil"
+            VERSION_FULL="OvO@酷安AMXlil［捐赠特供］"
           else
-            VERSION_FULL="2026.6.8@酷安AMXlil"
+            VERSION_FULL="OvO@酷安AMXlil［捐赠特供］"
           fi
 
           ESC_VERSION_FULL=$(printf '%s' "$VERSION_FULL" | sed 's/[&|\\/]/\\&/g')
