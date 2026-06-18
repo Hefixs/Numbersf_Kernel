@@ -31,6 +31,7 @@ on:
           - oneplus_12_b
           - oneplus_pad_go_2_b
           - oneplus_nord_ce4_lite_5g_b
+          - oneplus_nord_ce6_lite_b
           - oneplus_turbo_6v
           - oneplus_nord_4_b
           - oneplus_ace_3v_b
@@ -89,7 +90,7 @@ on:
         type: choice
         description: "内核模块实现方式"
         required: true
-        default: KPM
+        default: N/A
         options:
           - KPM
           - KPN
@@ -1141,7 +1142,7 @@ jobs:
           set_config "CONFIG_KSU_MULTI_MANAGER_SUPPORT=y"
           set_config "CONFIG_KSU_TOOLKIT_SUPPORT=y"
           if [[ -n "$KSU_CUSTOM_TAG" ]]; then
-            set_config "CONFIG_KSU_FULL_NAME_FORMAT=\"OvO@酷安AMXlil［捐赠特供］\""
+            set_config "CONFIG_KSU_FULL_NAME_FORMAT=\"酷安AMXlil［捐赠特供］\""
           fi
 
           # KPM配置
