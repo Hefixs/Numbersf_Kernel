@@ -1142,7 +1142,7 @@ jobs:
           set_config "CONFIG_KSU_MULTI_MANAGER_SUPPORT=y"
           set_config "CONFIG_KSU_TOOLKIT_SUPPORT=y"
           if [[ -n "$KSU_CUSTOM_TAG" ]]; then
-            set_config "CONFIG_KSU_FULL_NAME_FORMAT=\"酷安AMXlil［捐赠特供_来自随心听赞助更新］\""
+            set_config "CONFIG_KSU_FULL_NAME_FORMAT=\"酷安AMXlil\""
           fi
 
           # KPM配置
