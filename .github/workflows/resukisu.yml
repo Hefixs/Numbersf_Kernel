@@ -1,4 +1,4 @@
-name: resukisu
+name: Build All OnePlus Kernels
 on:
   workflow_dispatch:
     inputs:
@@ -10,7 +10,7 @@ on:
         options:
           - oneplus_nord_n30_se_5g_v
           - oneplus_10r_v
-          - oneplus_nord_3_v
+          - oneplus_nord_3_b
           - oneplus_ace_v
           - oneplus_ace_race_v
           - oneplus_10_pro_b
@@ -27,6 +27,7 @@ on:
           - oneplus_ace3_b
           - oneplus_open_b
           - oneplus_nord_ce4_b
+          - oneplus_n6_b
           - oneplus_12_b
           - oneplus_pad_go_2_b
           - oneplus_turbo_6x_b
@@ -99,7 +100,7 @@ on:
         type: string
         description: "管理器分支名(必填)/内置分支名(必填)/自定义版本标识(留空不修改)/回退分支提交哈希版本(留空不修改)//Manager Branch name (Required) / Builtin branch name (Required) / Custom version identifier (Leave blank to not modify) / Rollback branch commit hash version (Leave blank to not modify)"
         required: false
-        default: "main/main/Numbersf/"
+        default: "main/main/酷安AMXlil/"
       LZ4_UPDATE:
         type: boolean
         description: "是否升级LZ4到上游最新？//Upgrade LZ4 to the latest upstream?"
@@ -203,7 +204,7 @@ jobs:
       - name: Configure Git
         run: |
           git config --global user.name "Numbersf"
-          git config --global user.email "263623064@qq.com"
+          git config --global user.email "2722048997@qq.com"
           mkdir kernel_workspace && cd kernel_workspace
           git clone https://github.com/Numbersf/Action-Build.git -b ReSukiSU
 
@@ -671,10 +672,10 @@ jobs:
           KSU_VERSION=$(expr $(git rev-list --count "$KSU_MANAGER_BRANCH" 2>/dev/null || echo 13000) + 30700)
           echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
           if [ "$FAST_BUILD" = "false" ]; then
-            KSU_KBUILD="$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/KernelSU/kernel/Kbuild"
-            if [[ -f "$KSU_KBUILD" ]]; then
-              sed -i 's|^LOCAL_GIT_EXISTS :=.*|LOCAL_GIT_EXISTS := 1|' "$KSU_KBUILD"
-              echo "✅ 已修复 Bazel 沙箱 git 检测"
+            KSU_SRC="$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/KernelSU/kernel"
+            if [[ -f "$KSU_SRC/Kbuild" ]]; then
+              sed -i 's/-dirty//g' "$KSU_SRC/Kbuild"
+              sed -i "s|^KSU_SRC :=.*|KSU_SRC := $KSU_SRC|" "$KSU_SRC/Kbuild"
             fi
           fi
 
@@ -973,7 +974,7 @@ jobs:
           set_config "CONFIG_KSU_MULTI_MANAGER_SUPPORT=y"
           set_config "CONFIG_KSU_TOOLKIT_SUPPORT=y"
           if [[ -n "$KSU_CUSTOM_TAG" ]]; then
-            set_config "CONFIG_KSU_FULL_NAME_FORMAT=\"酷安AMXlil\""
+            set_config "CONFIG_KSU_FULL_NAME_FORMAT=\"${KSU_CUSTOM_TAG}\""
           fi
 
           # KPM配置
