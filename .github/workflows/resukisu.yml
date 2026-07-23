@@ -1,4 +1,4 @@
-name: Build All OnePlus Kernels
+name: Build oki
 on:
   workflow_dispatch:
     inputs:
