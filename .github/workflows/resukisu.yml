@@ -4,9 +4,9 @@ on:
     inputs:
       FILE:
         type: choice
-        description: "配置文件//Configuration file"
+        description: "配置"
         required: true
-        default: oneplus_pad_2_pro_b
+        default: oneplus_13_b
         options:
           - oneplus_nord_n30_se_5g_v
           - oneplus_10r_v
@@ -127,7 +127,7 @@ on:
         default: true
       LSM_BBG:
         type: boolean
-        description: "BBG?"
+        description: "BBG"
         required: true
         default: true
       NETFILTER:

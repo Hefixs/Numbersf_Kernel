@@ -4,9 +4,9 @@ on:
     inputs:
       FILE:
         type: choice
-        description: "配置文件//Configuration file"
+        description: "配置"
         required: true
-        default: oneplus_ace2_pro_b
+        default: oneplus_13_b
         options:
           - oneplus_nord_n30_se_5g_v
           - oneplus_10r_v
@@ -65,114 +65,114 @@ on:
           - oneplus_ace6_ultra
       SUSFS_CI:
         type: choice
-        description: "SUSFS模块下载调用方向//SUSFS module branch"
+        description: "SUSFS模块下载调用方向"
         required: true
-        default: CI
+        default: N/A
         options:
           - CI
           - Release
           - N/A
       KPM:
         type: choice
-        description: "内核模块实现方式//Kernel module implementation method"
+        description: "内核模块实现方式"
         required: true
-        default: KPN
+        default: N/A
         options:
           - KPM
           - KPN
           - N/A
       SUSFS_META:
         type: string
-        description: "回退SUSFS(输入哈希或次数或-1关闭)//Rollback SUSFS (Enter commit hash, count, or -1 to disable)"
+        description: "回退SUSFS(输入哈希或次数或-1关闭)"
         required: false
         default: ""
       DYNAMIC_REPO:
         type: string
-        description: "动态清单仓库所有者//Manifest repository owner"
+        description: "动态清单仓库所有者"
         required: true
         default: "Numbersf"
       BUILD_TIME:
         type: string
-        description: "自定义构建时间(输入F使用UTCT或-1关闭)//Custom build time (Enter F to use UTCT, or -1 to disable)"
+        description: "自定义构建时间(输入F使用UTCT或-1关闭)"
         required: false
-        default: "Fri Dec 12 11:37:03 UTC 2025"
+        default: "Fri Dec 12 11:37:03 UTC 2026"
       KSU_META:
         type: string
-        description: "管理器分支名(必填)/内置分支名(必填)/回退分支提交哈希版本(留空不修改)//Manager Branch name (Required) / Builtin branch name (Required) / Rollback branch commit hash version (Leave blank to not modify)"
+        description: "管理器分支名(必填)/内置分支名(必填)/自定义版本标识(留空不修改)/回退分支提交哈希版本(留空不修改)"
         required: false
         default: "dev/dev-susfs/"
       LZ4_UPDATE:
         type: boolean
-        description: "是否升级LZ4到上游最新？//Upgrade LZ4 to the latest upstream?"
+        description: "LZ4上游"
         required: true
         default: true
       ZRAM:
         type: string
-        description: "ZRAM(0关闭1开启)/算法名/大小//ZRAM (0: disable, 1: enable) / Algorithm name / Size"
+        description: "ZRAM(0关闭1开启)/算法名/大小"
         required: true
         default: "1/lz4kd/8589934592"
       SUFFIX:
         type: string
-        description: "自定义内核后缀(不输入使用RAND_STR或-1关闭)//Custom kernel suffix (Leave blank to use RAND_STR, or -1 to disable)"
+        description: "自定义内核后缀(不输入使用RAND_STR或-1关闭)"
         required: false
         default: ""
       RESUBLEVEL:
-        description: "自定义内核等级欺骗(SUBLEVEL)//Custom kernel SUBLEVEL spoofing"
+        description: "自定义内核等级欺骗(SUBLEVEL)"
         required: false
         default: ""
       FAST_BUILD:
         type: boolean
-        description: "是否启用极速构建？//Enable ultra-fast build?"
+        description: "是否启用极速构建"
         required: true
         default: true
       LSM_BBG:
         type: boolean
-        description: "是否启用关键分区写入保护模块(BBG)？//Enable critical partition write protection module (BBG)?"
+        description: "BBG"
         required: true
         default: true
       NETFILTER:
         type: boolean
-        description: "是否启用网络功能拓展(NETFILTER)？//Enable network feature extensions (NETFILTER)?"
+        description: "网络功能拓展(NETFILTER)"
         required: true
         default: true
       CCM:
         type: boolean
-        description: "是否启用网络拥塞控制与管理机制(BBR+ECN)？//Enable network congestion control and management mechanism (BBR+ECN)?"
+        description: "BBR+ECN"
         required: true
         default: true
       UNICODE_BYPASS:
         type: boolean
-        description: "是否添加Unicode不可见字码点绕过读取漏洞修复？//Add patch for Unicode invisible code point read bypass vulnerability?"
+        description: "UNICODE and CVE_2026_43499"
         required: true
-        default: false
+        default: true
       SCHED_HMBIRD:
         type: boolean
-        description: "是否添加风驰驱动1.0？//Add Fengchi (HMBIRD) Driver 1.0?"
+        description: "scx"
         required: true
         default: true
       DROID_SPACES:
         type: boolean
-        description: "是否添加轻量级Linux容器支持(DroidSpaces)？//Add lightweight Linux container support (DroidSpaces)?"
+        description: "DroidSpaces"
         required: true
         default: true
       RE_KERNEL:
         type: boolean
-        description: "是否添加Re-Kernel？//Add Re-Kernel?"
+        description: "Re-Kernel"
         required: true
         default: true
       SUSFS_DEV:
         type: boolean
-        description: "是否拉取SUSFS-DEV分支？//Pull the SUSFS-DEV branch?"
+        description: "拉取SUSFS-DEV分支"
         required: true
         default: false
       SPACE_NOCLEAN:
         type: boolean
-        description: "是否停用空间清扫？//Disable workspace cleaning?"
+        description: "停用空间清扫"
         required: true
         default: false
       BUILD_NOCACHE:
         type: boolean
-        description: "是否停用此次缓存？//Disable caching for this build?"
+        description: "停用此次缓存"
         required: true
         default: false
 
@@ -765,6 +765,8 @@ jobs:
             patch -p1 --forward < "${PATCH_DIR}/unicode_bypass_fix_6.1-.patch" || true
           else
             patch -p1 --forward < "${PATCH_DIR}/unicode_bypass_fix_6.1+.patch" || true
+                       wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.1.patch
+          patch -p1 -F 3 < cve-2026-43499-rtmutex-6.1.patch
           fi
           source $REJ_CHECKER
           check_rejects .
