@@ -791,6 +791,8 @@ jobs:
           
           
       - name: Apply CVE_2026_43499
+              if: ${{ github.event.inputs.CVE_2026_43499 == 'true' }}
+        run: |
           cd common
           wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.6.patch
           patch -p1 -F 3 < cve-2026-43499-rtmutex-6.6.patch
