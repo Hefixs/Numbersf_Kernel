@@ -145,13 +145,6 @@ on:
         description: "是否添加Unicode不可见字码点绕过读取漏洞修复？//Add patch for Unicode invisible code point read bypass vulnerability?"
         required: true
         default: true
-        
-              CVE_2026_43499:
-        type: boolean
-        description: "是否添加cve_2026_43499修复？"
-        required: true
-        default: true
-        
       SCHED_HMBIRD:
         type: boolean
         description: "是否添加风驰驱动1.0？//Add Fengchi (HMBIRD) Driver 1.0?"
@@ -350,7 +343,6 @@ jobs:
           echo "Selected FAST_BUILD: ${{ github.event.inputs.FAST_BUILD }}"
           echo "Selected SCHED_HMBIRD: ${{ github.event.inputs.SCHED_HMBIRD }}"
           echo "Selected UNICODE_BYPASS: ${{ github.event.inputs.UNICODE_BYPASS }}"
-          echo "Selected CVE_2026_43499: ${{ github.event.inputs.CVE_2026_43499 }}"
           echo "Selected DROID_SPACES: ${{ github.event.inputs.DROID_SPACES }}"
           echo "Selected RE_KERNEL: ${{ github.event.inputs.RE_KERNEL }}"
           echo "Selected LZ4_UPDATE: ${{ github.event.inputs.LZ4_UPDATE }}"
@@ -786,15 +778,6 @@ jobs:
           fi
           source $REJ_CHECKER
           check_rejects .
-          
-          
-      - name: Apply CVE_2026_43499
-              if: ${{ github.event.inputs.CVE_2026_43499 == 'true' }}
-        run: |
-          cd common
-          wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.6.patch
-          patch -p1 -F 3 < cve-2026-43499-rtmutex-6.6.patch
-          fi
 
       - name: Apply RE_KERNEL
         if: ${{ github.event.inputs.RE_KERNEL == 'true' }}
