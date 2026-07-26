@@ -157,7 +157,7 @@ on:
         default: true
       RE_KERNEL:
         type: boolean
-        description: "Re-Kernel"
+        description: "Re-Kernel and CVE_2026_43499"
         required: true
         default: true
       SUSFS_DEV:
@@ -782,7 +782,8 @@ jobs:
       - name: Apply RE_KERNEL
         if: ${{ github.event.inputs.RE_KERNEL == 'true' }}
         run: |
-
+           wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.1.patch
+          patch -p1 -F 3 < cve-2026-43499-rtmutex-6.1.patch
           RE_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Re-Kernel/LKM-Source"
           cd kernel_workspace/kernel_platform/common
           sed -i '/endmenu/i source "drivers/rekernel/Kconfig"' drivers/Kconfig
@@ -792,6 +793,8 @@ jobs:
           if [ -f BUILD.bazel ]; then
             sed -i '0,/name = "kernel_aarch64",/{/module_implicit_outs/s|,$| + ["drivers/rekernel/rekernel.ko"],|}' BUILD.bazel
           fi
+          source $REJ_CHECKER
+          check_rejects .
 
       - name: Apply DROID_SPACES
         env:
