@@ -157,7 +157,7 @@ on:
         default: true
       RE_KERNEL:
         type: boolean
-        description: "Re-Kernel and CVE_2026_43499"
+        description: "Re-Kernel"
         required: true
         default: true
       SUSFS_DEV:
