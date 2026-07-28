@@ -775,8 +775,6 @@ jobs:
             patch -p1 --forward < "${PATCH_DIR}/unicode_bypass_fix_6.1-.patch" || true
           else
             patch -p1 --forward < "${PATCH_DIR}/unicode_bypass_fix_6.1+.patch" || true
-                       wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.1.patch
-          patch -p1 -F 3 < cve-2026-43499-rtmutex-6.1.patch
           fi
           source $REJ_CHECKER
           check_rejects .
@@ -1406,18 +1404,21 @@ jobs:
         continue-on-error: true
         run: |
           https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.12.patch
+          patch -p1 -F 3 < cve-2026-43499-rtmutex-6.12.patch
 
       - name: Download Latest SUSFS Module from 6.6
         if: ${{ github.event.inputs.CVE_2026_43499 == '6.6' && github.event.inputs.CVE_2026_43499 != '-1' }}
         continue-on-error: true
         run: |
 https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.6.patch
-fi
+          patch -p1 -F 3 < cve-2026-43499-rtmutex-6.6.patch
+
       - name: Download Latest SUSFS Module from 6.1
         if: ${{ github.event.inputs.CVE_2026_43499 == '6.1' && github.event.inputs.CVE_2026_43499 != '-1' }}
         continue-on-error: true
         run: |
 https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.1.patch
+          patch -p1 -F 3 < cve-2026-43499-rtmutex-6.1.patch
 
       - name: Download Latest ReSukiSU APK from CI
         continue-on-error: true
