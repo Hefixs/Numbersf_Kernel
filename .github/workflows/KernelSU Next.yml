@@ -65,6 +65,7 @@ on:
           - oneplus_ace6_ultra
           
           CVE_2026_43499:
+        type: choice
         description: "CVE_2026_43499补丁版本"
         required: true
         default: 6.12
