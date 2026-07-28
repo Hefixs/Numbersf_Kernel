@@ -329,7 +329,7 @@ jobs:
           echo "Selected BUILD_METHOD: ${{ env.BUILD_METHOD }}"
           echo "Selected FILE: ${{ github.event.inputs.FILE }}"
           echo "Selected SUSFS_CI: ${{ github.event.inputs.SUSFS_CI }}"
-          if [ "${{ github.event.inputs.SUSFS_CI }}" != "6.1" ]; then
+          if [ "${{ github.event.inputs.SUSFS_CI }}" != "6.12" ]; then
             echo "::warning title=SUSFS Not Required::当前管理器已自带附加模块，无需启用 SUSFS 模块，强制启用可能导致不开机。"
           fi
           echo "Selected KPM: ${{ github.event.inputs.KPM }}"
