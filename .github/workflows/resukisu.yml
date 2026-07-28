@@ -128,7 +128,7 @@ on:
         default: true
       UNICODE_BYPASS:
         type: boolean
-        description: "UNICODE and CVE_2026_43499"
+        description: "UNICODE"
         required: true
         default: true
       SCHED_HMBIRD:
