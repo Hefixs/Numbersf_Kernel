@@ -63,16 +63,15 @@ on:
           - oneplus_pad_3_pro
           - oneplus_pad_4
           - oneplus_ace6_ultra
-          
-          CVE_2026_43499:
+      SUSFS_CI:
         type: choice
-        description: "CVE_2026_43499补丁版本"
+        description: "SUSFS模块下载调用方向"
         required: true
-        default: 6.12
+        default: N/A
         options:
-          - 6.12
-          - 6.6
-          - 6.1
+          - CI
+          - Release
+          - N/A
       KPM:
         type: choice
         description: "内核模块实现方式"
@@ -87,6 +86,11 @@ on:
         description: "回退SUSFS(输入哈希或次数或-1关闭)"
         required: false
         default: ""
+      DYNAMIC_REPO:
+        type: string
+        description: "动态清单仓库所有者"
+        required: true
+        default: "Numbersf"
       BUILD_TIME:
         type: string
         description: "自定义构建时间(输入F使用UTCT或-1关闭)"
@@ -107,6 +111,15 @@ on:
         description: "ZRAM(0关闭1开启)/算法名/大小"
         required: true
         default: "1/lz4kd/8589934592"
+      SUFFIX:
+        type: string
+        description: "自定义内核后缀(不输入使用RAND_STR或-1关闭)"
+        required: false
+        default: ""
+      RESUBLEVEL:
+        description: "自定义内核等级欺骗(SUBLEVEL)"
+        required: false
+        default: ""
       FAST_BUILD:
         type: boolean
         description: "是否启用极速构建"
@@ -129,7 +142,7 @@ on:
         default: true
       UNICODE_BYPASS:
         type: boolean
-        description: "UNICODE"
+        description: "UNICODE and CVE_2026_43499"
         required: true
         default: true
       SCHED_HMBIRD:
@@ -315,8 +328,7 @@ jobs:
           echo "Selected ANDROID_VERSION: ${{ env.ANDROID_VERSION }}"
           echo "Selected BUILD_METHOD: ${{ env.BUILD_METHOD }}"
           echo "Selected FILE: ${{ github.event.inputs.FILE }}"
-          echo "Selected CVE_2026_43499: ${{ github.event.inputs.CVE_2026_43499 }}"
-          if [ "${{ github.event.inputs.CVE_2026_43499 }}" != "6.12" ]; then
+          echo "Selected SUSFS_CI: ${{ github.event.inputs.SUSFS_CI }}"
           echo "Selected KPM: ${{ github.event.inputs.KPM }}"
           echo "Custom SUSFS_META: ${{ github.event.inputs.SUSFS_META }}"
           echo "Custom KSU_META: ${{ github.event.inputs.KSU_META }}"
@@ -751,6 +763,8 @@ jobs:
             patch -p1 --forward < "${PATCH_DIR}/unicode_bypass_fix_6.1-.patch" || true
           else
             patch -p1 --forward < "${PATCH_DIR}/unicode_bypass_fix_6.1+.patch" || true
+                       wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.1.patch
+          patch -p1 -F 3 < cve-2026-43499-rtmutex-6.1.patch
           fi
           source $REJ_CHECKER
           check_rejects .
@@ -1370,26 +1384,32 @@ jobs:
           mv -f oImage Image
           cp Image "${GITHUB_WORKSPACE}/AnyKernel3/Image"
 
-      - name: Apply CVE_2026_43499 6.12
-        if: ${{ github.event.inputs.CVE_2026_43499 == '6.12' && github.event.inputs.CVE_2026_43499 != '-1' }}
+      - name: Download Latest SUSFS Module from CI
+        if: ${{ github.event.inputs.SUSFS_CI == 'CI' && github.event.inputs.SUSFS_META != '-1' }}
         continue-on-error: true
         run: |
-          wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.12.patch
-          patch -p1 -F 3 < cve-2026-43499-rtmutex-6.12.patch
+          LATEST_RUN_ID=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/sidex15/susfs4ksu-module/actions/runs?status=success&event=push" | \
+            jq -r '.workflow_runs[] | select(.head_branch == "v1.5.2+") | .id' | head -n 1)
+          if [ -z "$LATEST_RUN_ID" ]; then
+            echo "No successful run found for branch v1.5.2+"
+          else
+            ARTIFACT_URL=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/sidex15/susfs4ksu-module/actions/runs/$LATEST_RUN_ID/artifacts" | jq -r '.artifacts[0].archive_download_url')
+            if [ -n "$ARTIFACT_URL" ]; then
+              curl -L -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -o ksu_module_susfs_1.5.2+_CI.zip "$ARTIFACT_URL"
+              cp ksu_module_susfs_1.5.2+_CI.zip ./AnyKernel3/
+            else
+              echo "Failed to fetch artifact URL"
+            fi
+          fi
 
-      - name: Apply CVE_2026_43499 6.6
-        if: ${{ github.event.inputs.CVE_2026_43499 == '6.6' && github.event.inputs.CVE_2026_43499 != '-1' }}
+      - name: Download Latest SUSFS Module from Release
+        if: ${{ github.event.inputs.SUSFS_CI == 'Release' && github.event.inputs.SUSFS_META != '-1' }}
         continue-on-error: true
         run: |
-          wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.6.patch
-          patch -p1 -F 3 < cve-2026-43499-rtmutex-6.6.patch
-
-      - name: Apply CVE_2026_43499 6.1
-        if: ${{ github.event.inputs.CVE_2026_43499 == '6.1' && github.event.inputs.CVE_2026_43499 != '-1' }}
-        continue-on-error: true
-        run: |
-          wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.1.patch
-          patch -p1 -F 3 < cve-2026-43499-rtmutex-6.1.patch
+          wget -O ksu_module_susfs_1.5.2+_Release.zip https://github.com/sidex15/ksu_module_susfs/releases/latest/download/ksu_module_susfs_1.5.2+.zip
+          cp ksu_module_susfs_1.5.2+_Release.zip ./AnyKernel3/
 
       - name: Download Latest KernelSU-Next APK from CI
         continue-on-error: true
