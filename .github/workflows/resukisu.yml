@@ -63,7 +63,7 @@ on:
           - oneplus_pad_3_pro
           - oneplus_pad_4
           - oneplus_ace6_ultra
-      SUSFS_CI:
+      CVE_2026_43499:
         type: choice
         description: "CVE_2026_43499补丁版本"
         required: true
