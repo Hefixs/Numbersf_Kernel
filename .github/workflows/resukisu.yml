@@ -65,13 +65,13 @@ on:
           - oneplus_ace6_ultra
       SUSFS_CI:
         type: choice
-        description: "SUSFS模块下载调用方向"
+        description: "CVE_2026_43499补丁版本"
         required: true
-        default: N/A
+        default: 6.12
         options:
-          - CI
-          - Release
-          - N/A
+          - 6.12
+          - 6.6
+          - 6.1
       KPM:
         type: choice
         description: "内核模块实现方式"
@@ -144,12 +144,7 @@ on:
         type: boolean
         description: "UNICODE and CVE_2026_43499"
         required: true
-        default: true  
-       CEV_CS:
-        type: boolean
-        description: "测试"
-        required: true
-        default: true  
+        default: true
       SCHED_HMBIRD:
         type: boolean
         description: "scx"
@@ -334,7 +329,7 @@ jobs:
           echo "Selected BUILD_METHOD: ${{ env.BUILD_METHOD }}"
           echo "Selected FILE: ${{ github.event.inputs.FILE }}"
           echo "Selected SUSFS_CI: ${{ github.event.inputs.SUSFS_CI }}"
-          if [ "${{ github.event.inputs.SUSFS_CI }}" != "N/A" ]; then
+          if [ "${{ github.event.inputs.SUSFS_CI }}" != "6.1" ]; then
             echo "::warning title=SUSFS Not Required::当前管理器已自带附加模块，无需启用 SUSFS 模块，强制启用可能导致不开机。"
           fi
           echo "Selected KPM: ${{ github.event.inputs.KPM }}"
@@ -348,7 +343,6 @@ jobs:
           echo "Selected FAST_BUILD: ${{ github.event.inputs.FAST_BUILD }}"
           echo "Selected SCHED_HMBIRD: ${{ github.event.inputs.SCHED_HMBIRD }}"
           echo "Selected UNICODE_BYPASS: ${{ github.event.inputs.UNICODE_BYPASS }}"
-          echo "Selected CEV_CS: ${{ github.event.inputs.CEV_CS }}"
           echo "Selected DROID_SPACES: ${{ github.event.inputs.DROID_SPACES }}"
           echo "Selected RE_KERNEL: ${{ github.event.inputs.RE_KERNEL }}"
           echo "Selected LZ4_UPDATE: ${{ github.event.inputs.LZ4_UPDATE }}"
@@ -786,12 +780,6 @@ jobs:
           fi
           source $REJ_CHECKER
           check_rejects .
-
-
-      - name: Apply CEV_CS
-        if: ${{ github.event.inputs.CEV_CS == 'true' }}
-        run: |
-
 
       - name: Apply RE_KERNEL
         if: ${{ github.event.inputs.RE_KERNEL == 'true' }}
@@ -1413,32 +1401,25 @@ jobs:
           mv -f oImage Image
           cp Image "${GITHUB_WORKSPACE}/AnyKernel3/Image"
 
-      - name: Download Latest SUSFS Module from CI
-        if: ${{ github.event.inputs.SUSFS_CI == 'CI' && github.event.inputs.SUSFS_META != '-1' }}
+      - name: Download Latest SUSFS Module from 6.12
+        if: ${{ github.event.inputs.SUSFS_CI == '6.12' && github.event.inputs.SUSFS_META != '-1' }}
         continue-on-error: true
         run: |
-          LATEST_RUN_ID=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/sidex15/susfs4ksu-module/actions/runs?status=success&event=push" | \
-            jq -r '.workflow_runs[] | select(.head_branch == "v1.5.2+") | .id' | head -n 1)
-          if [ -z "$LATEST_RUN_ID" ]; then
-            echo "No successful run found for branch v1.5.2+"
-          else
-            ARTIFACT_URL=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              "https://api.github.com/repos/sidex15/susfs4ksu-module/actions/runs/$LATEST_RUN_ID/artifacts" | jq -r '.artifacts[0].archive_download_url')
-            if [ -n "$ARTIFACT_URL" ]; then
-              curl -L -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -o ksu_module_susfs_1.5.2+_CI.zip "$ARTIFACT_URL"
-              cp ksu_module_susfs_1.5.2+_CI.zip ./AnyKernel3/
-            else
-              echo "Failed to fetch artifact URL"
-            fi
-          fi
+https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.12.patch
 
-      - name: Download Latest SUSFS Module from Release
-        if: ${{ github.event.inputs.SUSFS_CI == 'Release' && github.event.inputs.SUSFS_META != '-1' }}
+      - name: Download Latest SUSFS Module from 6.6
+        if: ${{ github.event.inputs.SUSFS_CI == '6.6' && github.event.inputs.SUSFS_META != '-1' }}
         continue-on-error: true
         run: |
-          wget -O ksu_module_susfs_1.5.2+_Release.zip https://github.com/sidex15/ksu_module_susfs/releases/latest/download/ksu_module_susfs_1.5.2+.zip
-          cp ksu_module_susfs_1.5.2+_Release.zip ./AnyKernel3/
+https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.6.patch
+
+
+      - name: Download Latest SUSFS Module from 6.1
+        if: ${{ github.event.inputs.SUSFS_CI == '6.1' && github.event.inputs.SUSFS_META != '-1' }}
+        continue-on-error: true
+        run: |
+https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.1.patch
+
 
       - name: Download Latest ReSukiSU APK from CI
         continue-on-error: true
