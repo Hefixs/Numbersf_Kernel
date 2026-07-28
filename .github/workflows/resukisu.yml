@@ -144,14 +144,12 @@ on:
         type: boolean
         description: "UNICODE and CVE_2026_43499"
         required: true
-        default: true
-        
-              cve_2026_43499:
+        default: true  
+       CEV_CS:
         type: boolean
         description: "测试"
         required: true
-        default: true
-        
+        default: true  
       SCHED_HMBIRD:
         type: boolean
         description: "scx"
@@ -350,6 +348,7 @@ jobs:
           echo "Selected FAST_BUILD: ${{ github.event.inputs.FAST_BUILD }}"
           echo "Selected SCHED_HMBIRD: ${{ github.event.inputs.SCHED_HMBIRD }}"
           echo "Selected UNICODE_BYPASS: ${{ github.event.inputs.UNICODE_BYPASS }}"
+          echo "Selected CEV_CS: ${{ github.event.inputs.CEV_CS }}"
           echo "Selected DROID_SPACES: ${{ github.event.inputs.DROID_SPACES }}"
           echo "Selected RE_KERNEL: ${{ github.event.inputs.RE_KERNEL }}"
           echo "Selected LZ4_UPDATE: ${{ github.event.inputs.LZ4_UPDATE }}"
