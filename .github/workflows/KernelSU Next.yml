@@ -63,6 +63,8 @@ on:
           - oneplus_pad_3_pro
           - oneplus_pad_4
           - oneplus_ace6_ultra
+          
+          CVE_2026_43499:
         description: "CVE_2026_43499补丁版本"
         required: true
         default: 6.12
