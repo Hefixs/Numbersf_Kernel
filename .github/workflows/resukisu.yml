@@ -787,6 +787,12 @@ jobs:
           source $REJ_CHECKER
           check_rejects .
 
+
+      - name: Apply CEV_CS
+        if: ${{ github.event.inputs.CEV_CS == 'true' }}
+        run: |
+
+
       - name: Apply RE_KERNEL
         if: ${{ github.event.inputs.RE_KERNEL == 'true' }}
         run: |
