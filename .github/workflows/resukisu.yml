@@ -145,6 +145,13 @@ on:
         description: "UNICODE and CVE_2026_43499"
         required: true
         default: true
+        
+              cve_2026_43499:
+        type: boolean
+        description: "测试"
+        required: true
+        default: true
+        
       SCHED_HMBIRD:
         type: boolean
         description: "scx"
