@@ -316,7 +316,6 @@ jobs:
           echo "Selected FILE: ${{ github.event.inputs.FILE }}"
           echo "Selected CVE_2026_43499: ${{ github.event.inputs.CVE_2026_43499 }}"
           if [ "${{ github.event.inputs.CVE_2026_43499 }}" != "6.12" ]; then
-            echo "::warning title=SUSFS Not Required::当前管理器已自带附加模块，无需启用 SUSFS 模块，强制启用可能导致不开机。"
           fi
           echo "Selected KPM: ${{ github.event.inputs.KPM }}"
           echo "Custom SUSFS_META: ${{ github.event.inputs.SUSFS_META }}"
