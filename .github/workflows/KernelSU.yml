@@ -72,6 +72,7 @@ on:
           - 6.12
           - 6.6
           - 6.1
+          - N/A
       KPM:
         type: choice
         description: "内核模块实现方式"

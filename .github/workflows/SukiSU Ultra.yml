@@ -72,6 +72,7 @@ on:
           - 6.12
           - 6.6
           - 6.1
+          - N/A
       KPM:
         type: choice
         description: "内核模块实现方式"
@@ -128,7 +129,7 @@ on:
         default: true
       UNICODE_BYPASS:
         type: boolean
-        description: "UNICODE and CVE_2026_43499"
+        description: "UNICODE"
         required: true
         default: true
       SCHED_HMBIRD:
