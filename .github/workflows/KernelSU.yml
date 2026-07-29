@@ -86,11 +86,6 @@ on:
         description: "回退SUSFS(输入哈希或次数或-1关闭)"
         required: false
         default: ""
-      DYNAMIC_REPO:
-        type: string
-        description: "动态清单仓库所有者"
-        required: true
-        default: "Numbersf"
       BUILD_TIME:
         type: string
         description: "自定义构建时间(输入F使用UTCT或-1关闭)"
@@ -111,15 +106,6 @@ on:
         description: "ZRAM(0关闭1开启)/算法名/大小"
         required: true
         default: "1/lz4kd/8589934592"
-      SUFFIX:
-        type: string
-        description: "自定义内核后缀(不输入使用RAND_STR或-1关闭)"
-        required: false
-        default: ""
-      RESUBLEVEL:
-        description: "自定义内核等级欺骗(SUBLEVEL)"
-        required: false
-        default: ""
       FAST_BUILD:
         type: boolean
         description: "是否启用极速构建"
