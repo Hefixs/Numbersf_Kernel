@@ -67,7 +67,7 @@ on:
         type: choice
         description: "CVE_2026_43499补丁版本"
         required: true
-        default: 6.12
+        default: 6.6
         options:
           - 6.12
           - 6.6

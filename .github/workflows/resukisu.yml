@@ -67,7 +67,7 @@ on:
         type: choice
         description: "CVE_2026_43499补丁版本"
         required: true
-        default: 6.12
+        default: 6.6
         options:
           - 6.12
           - 6.6
@@ -315,7 +315,7 @@ jobs:
           echo "Selected BUILD_METHOD: ${{ env.BUILD_METHOD }}"
           echo "Selected FILE: ${{ github.event.inputs.FILE }}"
           echo "Selected CVE_2026_43499: ${{ github.event.inputs.CVE_2026_43499 }}"
-          if [ "${{ github.event.inputs.CVE_2026_43499 }}" != "6.12" ]; then
+          if [ "${{ github.event.inputs.CVE_2026_43499 }}" != "6.6" ]; then
           fi
           echo "Selected KPM: ${{ github.event.inputs.KPM }}"
           echo "Custom SUSFS_META: ${{ github.event.inputs.SUSFS_META }}"
