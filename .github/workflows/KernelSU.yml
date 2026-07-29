@@ -63,15 +63,15 @@ on:
           - oneplus_pad_3_pro
           - oneplus_pad_4
           - oneplus_ace6_ultra
-      SUSFS_CI:
+      CVE_2026_43499:
         type: choice
-        description: "SUSFS模块下载调用方向"
+        description: "CVE_2026_43499补丁版本"
         required: true
-        default: N/A
+        default: 6.12
         options:
-          - CI
-          - Release
-          - N/A
+          - 6.12
+          - 6.6
+          - 6.1
       KPM:
         type: choice
         description: "内核模块实现方式"
