@@ -332,10 +332,10 @@ jobs:
           echo "Selected LZ4_UPDATE: ${{ github.event.inputs.LZ4_UPDATE }}"
           echo "Custom BUILD_TIME: $BUILD_TIME"
           echo -n "BUILD_TIME Unicode: "
-          CHECK_TEXT="$BUILD_TIME" python3 "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/check_unicode_format.py" --mode build_time
+          CHECK_TEXT="$BUILD_TIME" python3 "$GITHUB_WORKSPACE/kernel_workspace/Numbersf_Kernel/scripts/check_unicode_format.py" --mode build_time
           echo "Custom SUFFIX: $SUFFIX"
           echo -n "SUFFIX Unicode: "
-          CHECK_TEXT="$SUFFIX" python3 "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/check_unicode_format.py" --mode suffix
+          CHECK_TEXT="$SUFFIX" python3 "$GITHUB_WORKSPACE/kernel_workspace/Numbersf_Kernel/scripts/check_unicode_format.py" --mode suffix
 
       - name: Check Disk Space
         run: df -h
@@ -360,13 +360,13 @@ jobs:
         run: |
           repo="${{ github.repository }}"; json=$(curl -s "https://api.github.com/repos/$repo")
           parent=$(echo "$json" | grep -o '"full_name": *"[^"]*"' | head -n 2 | tail -n 1 | sed 's/.*"full_name": *"\([^"]*\)".*/\1/')
-          if [ -n "$parent" ] && [ "$parent" != "Numbersf/Action-Build" ]; then
+          if [ -n "$parent" ] && [ "$parent" != "Numbersf/Numbersf_Kernel" ]; then
             echo "::warning title=Source Warning::您使用的内核编译地址为非官方源，可能导致运行失败或内核异常。"
           fi
 
       - name: Reject Check
         run: |
-          REJ_CHECKER="$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/check_rejects.sh"
+          REJ_CHECKER="$GITHUB_WORKSPACE/kernel_workspace/Numbersf_Kernel/scripts/check_rejects.sh"
           chmod +x "$REJ_CHECKER"
           echo "REJ_CHECKER=$REJ_CHECKER" >> $GITHUB_ENV
 
@@ -380,11 +380,11 @@ jobs:
       - name: Install Dependencies
         run: |
           export APT_PACKAGES="python3 git curl libelf-dev build-essential flex bison libssl-dev libncurses-dev liblz4-tool zlib1g-dev libxml2-utils rsync unzip gawk dos2unix kmod libdw-dev elfutils dwarves kotlin"
-          bash "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/cache_apt_pkgs.sh" ~/.apt-pkg-cache
+          bash "$GITHUB_WORKSPACE/kernel_workspace/Numbersf_Kernel/scripts/cache_apt_pkgs.sh" ~/.apt-pkg-cache
 
       - name: Install Ccache-ECS
         run: |
-         LIB_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/lib"
+         LIB_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Numbersf_Kernel/lib"
          sudo cp -f "$LIB_DIR/ccache" /usr/bin/ccache && sudo chmod +x /usr/bin/ccache
 
       - name: Restore Ccache
@@ -660,7 +660,7 @@ jobs:
       - name: Apply Fake Patches
         if: ${{ github.event.inputs.SUSFS_META != '-1' }}
         run: |
-          kotlinc -script "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/PatchFakePatches.kts" apply "$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/common"
+          kotlinc -script "$GITHUB_WORKSPACE/kernel_workspace/Numbersf_Kernel/scripts/PatchFakePatches.kts" apply "$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/common"
 
       - name: Apply Patches KernelSU
         env:
@@ -717,7 +717,7 @@ jobs:
 
           if [ "$KMI" == "android13-5.15" ] && [ "$SUBLEVEL" -lt 123 ]; then
             echo "修复内核版本为5.15.0~5.15.123仅支持旧版C库造成的一些bug"
-            cp "${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/patches/fix_5.15.legacy" ./fix_5.15.legacy.patch
+            cp "${GITHUB_WORKSPACE}/kernel_workspace/Numbersf_Kernel/patches/fix_5.15.legacy" ./fix_5.15.legacy.patch
             patch -p1 < fix_5.15.legacy.patch
             echo "fix_5.15_patch完成"
           fi
@@ -733,14 +733,14 @@ jobs:
       - name: Revert Fake Patches
         if: ${{ github.event.inputs.SUSFS_META != '-1' }}
         run: |
-          kotlinc -script "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/PatchFakePatches.kts" postfix "$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/common"
-          kotlinc -script "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/PatchFakePatches.kts" revert "$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/common"
+          kotlinc -script "$GITHUB_WORKSPACE/kernel_workspace/Numbersf_Kernel/scripts/PatchFakePatches.kts" postfix "$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/common"
+          kotlinc -script "$GITHUB_WORKSPACE/kernel_workspace/Numbersf_Kernel/scripts/PatchFakePatches.kts" revert "$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/common"
 
       # OGKI转换GKI，无需修改 dtbo 开机
       - name: Apply Convert HMBIRD_OGKI to HMBIRD_GKI
         if: ${{ (fromJSON(env.VERSIONLEVEL) > 6 || (fromJSON(env.VERSIONLEVEL) == 6 && fromJSON(env.PATCHLEVEL) >= 6)) && github.event.inputs.SCHED_HMBIRD == 'false' }}
         run: |
-          PATCH_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/patches"
+          PATCH_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Numbersf_Kernel/patches"
           cd kernel_workspace/kernel_platform/common
           for p in ./kernel/sched/hmbird* ./vendor/oplus/kernel/cpu/sched_ext/hmbird*; do
             [ -d "$p" ] && {
@@ -758,7 +758,7 @@ jobs:
       - name: Apply BBRv3
         if: ${{ github.event.inputs.CCM == 'true' && env.KMI != 'android16-6.12' }}
         run: |
-          PATCH_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/patches"
+          PATCH_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Numbersf_Kernel/patches"
           cd kernel_workspace/kernel_platform/common
           patch -p1 < "${PATCH_DIR}/bbrv3/0001-net-tcp-backport-BBRv3-to-$KMI.patch"
           if [ "$KMI" = "android12-5.10" ]; then
@@ -773,7 +773,7 @@ jobs:
       - name: Apply UNICODE_BYPASS
         if: ${{ github.event.inputs.UNICODE_BYPASS == 'true' }}
         run: |
-          PATCH_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/patches"
+          PATCH_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Numbersf_Kernel/patches"
           cd kernel_workspace/kernel_platform/common
           if [ "$VERSIONLEVEL" -lt 6 ]; then
             patch -p1 --forward < "${PATCH_DIR}/unicode_bypass_fix_6.1-.patch" || true
@@ -801,7 +801,7 @@ jobs:
           FILE: ${{ github.event.inputs.FILE }}
         if: ${{ github.event.inputs.DROID_SPACES == 'true' }}
         run: |
-          PATCH_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/patches"
+          PATCH_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Numbersf_Kernel/patches"
           cd kernel_workspace/kernel_platform/common
           # 注释掉原始的 sysv 结构体定义
           sed -i 's/^\(\t\)struct sysv_sem\b.*sysvsem;/\1\/\/ struct sysv_sem\t\t\tsysvsem;/' include/linux/sched.h
@@ -1406,8 +1406,8 @@ jobs:
         if: ${{ github.event.inputs.KPM != 'N/A' }}
         run: |
           KPM_DIR="${GITHUB_WORKSPACE}/kernel_workspace/SukiSU_patch/kpm"
-          # KPM_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/patches/kpm"
-          KPN_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/patches/kpn"
+          # KPM_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Numbersf_Kernel/patches/kpm"
+          KPN_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Numbersf_Kernel/patches/kpn"
           OUT_DIR="${GITHUB_WORKSPACE}/kernel_workspace/kernel_platform/out/Final-Image-Find"
           cd "${OUT_DIR}"
           if [ "${{ github.event.inputs.KPM }}" = "KPM" ]; then
@@ -1467,7 +1467,7 @@ jobs:
         id: zram_find
         run: |
           set -e
-          ZRAM_ZIP="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/ZRAM.zip"
+          ZRAM_ZIP="${GITHUB_WORKSPACE}/kernel_workspace/Numbersf_Kernel/ZRAM.zip"
 
           if [ ! -f "$ZRAM_ZIP" ]; then
             echo "❌ 未找到 ZRAM.zip: $ZRAM_ZIP"
