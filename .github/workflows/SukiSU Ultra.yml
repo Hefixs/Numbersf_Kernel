@@ -967,7 +967,7 @@ jobs:
           curl -LSs https://raw.githubusercontent.com/vc-teahouse/Baseband-guard/main/setup.sh | bash
           sed -i '/^config LSM$/,/^help$/{ /^[[:space:]]*default/ { /baseband_guard/! s/selinux/selinux,baseband_guard/ } }' ./security/Kconfig
           
-       - name: Apply CVE_2026_43499 6.12
+      - name: Apply CVE_2026_43499 6.12
         if: ${{ github.event.inputs.CVE_2026_43499 == '6.12' && github.event.inputs.CVE_2026_43499 != '-1' }}
         continue-on-error: true
         run: |
