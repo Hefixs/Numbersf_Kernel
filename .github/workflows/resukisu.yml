@@ -190,6 +190,8 @@ jobs:
 
       - name: Configure Git
         run: |
+          git config --global user.name "Numbersf"
+          git config --global user.email "263623064@qq.com"
           mkdir kernel_workspace && cd kernel_workspace
           git clone https://github.com/Numbersf/Action-Build.git -b ReSukiSU
 
@@ -272,7 +274,7 @@ jobs:
           # 提取 CPU
           CPU=$(echo "$REVISION" | sed -E 's#^(oneplus|realme|oppo)/([^_]+).*#\2#')
           # 提取 ANDROID_VERSION
-          ANDROID_VERSION=$(echo "$REVISION" | grep -oP '\d{1,2}\.\d{1,2}(\.\d{1,2})?')
+          ANDROID_VERSION=$(echo "$REVISION" | grep -oP '\d+\.\d+(\.\d+)?')
           if [[ -n "$CPU" && -n "$ANDROID_VERSION" ]]; then
             echo "✅ CPU=$CPU, ANDROID_VERSION=$ANDROID_VERSION"
             echo "CPU=$CPU" >> $GITHUB_ENV
@@ -316,6 +318,7 @@ jobs:
           echo "Selected BUILD_METHOD: ${{ env.BUILD_METHOD }}"
           echo "Selected FILE: ${{ github.event.inputs.FILE }}"
           echo "Selected CVE_2026_43499: ${{ github.event.inputs.CVE_2026_43499 }}"
+          if [ "${{ github.event.inputs.CVE_2026_43499 }}" != "N/A" ]; then
           echo "Selected KPM: ${{ github.event.inputs.KPM }}"
           echo "Custom SUSFS_META: ${{ github.event.inputs.SUSFS_META }}"
           echo "Custom KSU_META: ${{ github.event.inputs.KSU_META }}"
@@ -535,8 +538,14 @@ jobs:
             RUSTC_VERSION=$(grep '^RUSTC_VERSION=' ./common/build.config.constants | cut -d'=' -f2 || true)
           fi
           if [[ -n "$RUSTC_VERSION" ]]; then
-            echo "✅ RUSTC_VERSION=$RUSTC_VERSION"
+            echo "✅ RUSTC_VERSION(原始)=$RUSTC_VERSION"
+            RUSTC_DIR_VERSION=$(echo "$RUSTC_VERSION" | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+')
+            if [[ -z "$RUSTC_DIR_VERSION" ]]; then
+              RUSTC_DIR_VERSION="$RUSTC_VERSION"
+            fi
+            echo "✅ RUSTC_DIR_VERSION(用于目录匹配)=$RUSTC_DIR_VERSION"
             echo "RUSTC_VERSION=$RUSTC_VERSION" >> $GITHUB_ENV
+            echo "RUSTC_DIR_VERSION=$RUSTC_DIR_VERSION" >> $GITHUB_ENV
             echo "ENABLE_RUST=true" >> $GITHUB_ENV
           else
             echo "✅ RUSTC_VERSION 未找到，Rust 编译已禁用"
@@ -729,6 +738,7 @@ jobs:
       - name: Revert Fake Patches
         if: ${{ github.event.inputs.SUSFS_META != '-1' }}
         run: |
+          kotlinc -script "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/PatchFakePatches.kts" postfix "$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/common"
           kotlinc -script "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/PatchFakePatches.kts" revert "$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/common"
 
       # OGKI转换GKI，无需修改 dtbo 开机
@@ -747,6 +757,21 @@ jobs:
           echo "正在打OGKI转换GKI补丁"
           patch -p1 -F 3 < "${PATCH_DIR}/hmbird_patch.patch" || true
           echo "OGKI转换GKI_patch完成"
+          source $REJ_CHECKER
+          check_rejects .
+
+      - name: Apply BBRv3
+        if: ${{ github.event.inputs.CCM == 'true' && env.KMI != 'android16-6.12' }}
+        run: |
+          PATCH_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/patches"
+          cd kernel_workspace/kernel_platform/common
+          patch -p1 < "${PATCH_DIR}/bbrv3/0001-net-tcp-backport-BBRv3-to-$KMI.patch"
+          if [ "$KMI" = "android12-5.10" ]; then
+            if ! grep -qF 'int proc_dou8vec_minmax(' ./include/linux/sysctl.h; then
+              patch -p1 < "${PATCH_DIR}/bbrv3/sysctl_add_proc_dou8vec_minmax.patch"
+              patch -p1 < "${PATCH_DIR}/bbrv3/sysctl_fix_data-races_in_proc_dou8vec_minmax.patch"
+            fi
+          fi
           source $REJ_CHECKER
           check_rejects .
 
@@ -956,7 +981,7 @@ jobs:
           set_config "CONFIG_KSU_MULTI_MANAGER_SUPPORT=y"
           set_config "CONFIG_KSU_TOOLKIT_SUPPORT=y"
           if [[ -n "$KSU_CUSTOM_TAG" ]]; then
-            set_config "CONFIG_KSU_FULL_NAME_FORMAT=\"${KSU_CUSTOM_TAG}\""
+            set_config "CONFIG_KSU_FULL_NAME_FORMAT=\"%TAG_NAME%-${KSU_CUSTOM_TAG}@${KSU_BUILTIN_BRANCH}[%COMMIT_SHA%]\""
           fi
 
           # KPM配置
@@ -991,6 +1016,9 @@ jobs:
           if [ "${{ github.event.inputs.CCM }}" = "true" ]; then
             set_hide_config "CONFIG_TCP_CONG_ADVANCED=y"
             set_config "CONFIG_TCP_CONG_BBR=y"
+            if [ "$KMI" != "android16-6.12" ]; then
+              set_config "CONFIG_TCP_CONG_BBR3=y"
+            fi
             set_config "CONFIG_NET_SCH_FQ=y"
             set_config "CONFIG_TCP_CONG_BIC=n"
             set_config "CONFIG_TCP_CONG_WESTWOOD=n"
@@ -1233,7 +1261,7 @@ jobs:
 
           # RUSTC 检测与 fallback
           if [[ "$ENABLE_RUST" == "true" ]]; then
-            RUSTC_BIN="$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/$RUST_TOOLS_PREBUILT_NAME/rust/linux-x86/$RUSTC_VERSION/bin/rustc"
+            RUSTC_BIN="$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/$RUST_TOOLS_PREBUILT_NAME/rust/linux-x86/$RUSTC_DIR_VERSION/bin/rustc"
             if [ ! -x "$RUSTC_BIN" ]; then
               RUSTC_BIN="$(which rustc 2>/dev/null)"
               [ -x "$RUSTC_BIN" ] && echo "⚠️ rustc fallback to PATH: $RUSTC_BIN"
