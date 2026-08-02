@@ -190,10 +190,8 @@ jobs:
 
       - name: Configure Git
         run: |
-          git config --global user.name "Numbersf"
-          git config --global user.email "263623064@qq.com"
           mkdir kernel_workspace && cd kernel_workspace
-          git clone https://github.com/Numbersf/Action-Build.git -b KernelSU-Next
+          git clone https://github.com/Hefixs/Numbersf_Kernel.git
 
       - name: Extract Manifest Info
         id: extract_info
@@ -921,6 +919,27 @@ jobs:
           curl -LSs https://raw.githubusercontent.com/vc-teahouse/Baseband-guard/main/setup.sh | bash
           sed -i '/^config LSM$/,/^help$/{ /^[[:space:]]*default/ { /baseband_guard/! s/selinux/selinux,baseband_guard/ } }' ./security/Kconfig
 
+      - name: Apply CVE_2026_43499 6.12
+        if: ${{ github.event.inputs.CVE_2026_43499 == '6.12' && github.event.inputs.CVE_2026_43499 != '-1' }}
+        continue-on-error: true
+        run: |
+          wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.12.patch
+          patch -p1 -F 3 < cve-2026-43499-rtmutex-6.12.patch
+
+      - name: Apply CVE_2026_43499 6.6
+        if: ${{ github.event.inputs.CVE_2026_43499 == '6.6' && github.event.inputs.CVE_2026_43499 != '-1' }}
+        continue-on-error: true
+        run: |
+          wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.6.patch
+          patch -p1 -F 3 < cve-2026-43499-rtmutex-6.6.patch
+
+      - name: Apply CVE_2026_43499 6.1
+        if: ${{ github.event.inputs.CVE_2026_43499 == '6.1' && github.event.inputs.CVE_2026_43499 != '-1' }}
+        continue-on-error: true
+        run: |
+          wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.1.patch
+          patch -p1 -F 3 < cve-2026-43499-rtmutex-6.1.patch
+
       # 配置信息，带*为附加项目，具有一定危险性和不确定性
       - name: Add Configuration Settings
         run: |
@@ -1396,26 +1415,7 @@ jobs:
           mv -f oImage Image
           cp Image "${GITHUB_WORKSPACE}/AnyKernel3/Image"
 
-      - name: Apply CVE_2026_43499 6.12
-        if: ${{ github.event.inputs.CVE_2026_43499 == '6.12' && github.event.inputs.CVE_2026_43499 != '-1' }}
-        continue-on-error: true
-        run: |
-          wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.12.patch
-          patch -p1 -F 3 < cve-2026-43499-rtmutex-6.12.patch
 
-      - name: Apply CVE_2026_43499 6.6
-        if: ${{ github.event.inputs.CVE_2026_43499 == '6.6' && github.event.inputs.CVE_2026_43499 != '-1' }}
-        continue-on-error: true
-        run: |
-          wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.6.patch
-          patch -p1 -F 3 < cve-2026-43499-rtmutex-6.6.patch
-
-      - name: Apply CVE_2026_43499 6.1
-        if: ${{ github.event.inputs.CVE_2026_43499 == '6.1' && github.event.inputs.CVE_2026_43499 != '-1' }}
-        continue-on-error: true
-        run: |
-          wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.1.patch
-          patch -p1 -F 3 < cve-2026-43499-rtmutex-6.1.patch
 
       - name: Download Latest KernelSU-Next APK from CI
         continue-on-error: true
