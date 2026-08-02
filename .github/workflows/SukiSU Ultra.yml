@@ -672,9 +672,9 @@ jobs:
             USE_HASH="$GIT_HASH"
           fi
           if [[ -z "$KSU_CUSTOM_TAG" ]]; then
-            VERSION_FULL="v$KSU_VERSION_TAG-$USE_HASH@$KSU_BUILTIN_BRANCH"
+            VERSION_FULL="$KSU_CUSTOM_TAG"
           else
-            VERSION_FULL="v$KSU_VERSION_TAG-$KSU_CUSTOM_TAG@$KSU_BUILTIN_BRANCH[$USE_HASH]"
+            VERSION_FULL="$KSU_CUSTOM_TAG"
           fi
 
           ESC_VERSION_FULL=$(printf '%s' "$VERSION_FULL" | sed 's/[&|\\/]/\\&/g')
