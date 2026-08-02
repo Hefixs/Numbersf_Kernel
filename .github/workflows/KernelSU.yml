@@ -1377,7 +1377,7 @@ jobs:
       - name: Make AnyKernel3
         run: |
           git clone https://github.com/Hefixs/Numbersf_Kernel --depth=1
-          rm -rf ./AnyKernel3/.git
+          rm -rf ./Numbersf_Kernel/.git
           mkdir -p kernel_workspace/kernel_platform/out/Final-Image-Find/
           image_path=""
           if [ -d "./kernel_workspace/kernel_platform/common/out/" ]; then
