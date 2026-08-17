@@ -96,7 +96,7 @@ on:
         type: string
         description: "管理器分支名(必填)/内置分支名(必填)/自定义版本标识(留空不修改)/回退分支提交哈希版本(留空不修改)"
         required: false
-        default: "main/main/"
+        default: "master/master/"
       LZ4_UPDATE:
         type: boolean
         description: "LZ4上游"
