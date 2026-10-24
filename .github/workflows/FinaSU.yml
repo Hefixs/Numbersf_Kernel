@@ -707,7 +707,7 @@ jobs:
           fi
 
           if [ "${{ github.event.inputs.SUSFS_META }}" != "-1" ]; then
-            cd ./KernelSU
+            cd ./FinaSU
             sed -i 's|kernel/Makefile|kernel/Kbuild|g' ./10_enable_susfs_for_ksu.patch
             patch -p1 < 10_enable_susfs_for_ksu.patch || true
             cd ../common
