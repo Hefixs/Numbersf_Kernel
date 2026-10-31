@@ -1,4 +1,4 @@
-name: Build FinaSU oki
+name: Build BakaSU oki
 on:
   workflow_dispatch:
     inputs:
@@ -96,7 +96,7 @@ on:
         type: string
         description: "管理器分支名(必填)/内置分支名(必填)/自定义版本标识(留空不修改)/回退分支提交哈希版本(留空不修改)"
         required: false
-        default: "master/master/"
+        default: "main/main/酷安AMXlil/"
       LZ4_UPDATE:
         type: boolean
         description: "LZ4上游"
@@ -627,42 +627,52 @@ jobs:
             chmod +x "$f"
           done
 
-      - name: Add KernelSU
+      - name: Add BakaSU
         run: |
           cd kernel_workspace/kernel_platform
           KSU_META="${{ github.event.inputs.KSU_META }}"
+          FAST_BUILD="${{ github.event.inputs.FAST_BUILD }}"
 
-          # 必须包含两个分隔符（至少三个字段）
-          if [[ "$(grep -o '/' <<< "$KSU_META" | wc -l)" -lt 2 ]]; then
-            echo "错误: KSU_META 参数缺少必要的分隔符 '/'，格式应为: 管理器分支名/内置分支名/提交hash(可省略)"
+          # 必须包含两个分隔符（至少四个字段）
+          if [[ "$(grep -o '/' <<< "$KSU_META" | wc -l)" -lt 3 ]]; then
+            echo "错误: KSU_META 参数缺少必要的分隔符 '/'，格式应为: 管理器分支名/内置分支名/自定义标识(可省略)/提交hash(可省略)"
             exit 10
           fi
 
           # 解析字段：分支 / 自定义标识 / 手动 hash
-          IFS='/' read -r KSU_MANAGER_BRANCH KSU_BUILTIN_BRANCH MANUAL_HASH <<< "$KSU_META"
+          IFS='/' read -r KSU_MANAGER_BRANCH KSU_BUILTIN_BRANCH KSU_CUSTOM_TAG MANUAL_HASH <<< "$KSU_META"
           echo "KSU_MANAGER_BRANCH=$KSU_MANAGER_BRANCH" >> $GITHUB_ENV
           echo "KSU_BUILTIN_BRANCH=$KSU_BUILTIN_BRANCH" >> $GITHUB_ENV
+          [[ -n "$KSU_CUSTOM_TAG" ]] && echo "自定义版本标识: $KSU_CUSTOM_TAG" || echo "自定义版本标识: 未启用"
           [[ -n "$MANUAL_HASH" ]] && echo "手动指定 hash: $MANUAL_HASH" || echo "手动指定 hash: 未启用"
 
-          curl -LSs "https://raw.githubusercontent.com/LyraVoid/FinaSU/refs/heads/${KSU_MANAGER_BRANCH}/kernel/setup.sh" | bash -s "$KSU_BUILTIN_BRANCH"
-          cd ./FinaSU
+          curl -LSs "https://raw.githubusercontent.com/LyraVoid/FinaSU/${KSU_MANAGER_BRANCH}/kernel/setup.sh" | bash -s "$KSU_BUILTIN_BRANCH"
+          cd ./KernelSU
 
+          if [[ -n "$KSU_CUSTOM_TAG" ]]; then
+            echo "KSU_CUSTOM_TAG=$KSU_CUSTOM_TAG" >> "$GITHUB_ENV"
+          fi
           if [[ -n "$MANUAL_HASH" ]]; then
             git fetch origin "$KSU_BUILTIN_BRANCH" --depth=50
             git checkout "$MANUAL_HASH"
           fi
 
-          KSU_VERSION=$(expr $(curl -sI "https://api.github.com/repos/LyraVoid/FinaSU/commits?sha=${KSU_MANAGER_BRANCH}&per_page=1" | grep -i "link:" | sed -n 's/.*page=\([0-9]*\)>; rel="last".*/\1/p') "+" 30000)
+          KSU_VERSION=$(expr $(git rev-list --count "$KSU_MANAGER_BRANCH" 2>/dev/null || echo 13000) + 30700)
           echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
-          echo "ksuver=$KSU_VERSION" >> $GITHUB_OUTPUT
-          sed -i "s/DKSU_VERSION=16/DKSU_VERSION=${KSU_VERSION}/" kernel/Kbuild
+          if [ "$FAST_BUILD" = "false" ]; then
+            KSU_SRC="$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/KernelSU/kernel"
+            if [[ -f "$KSU_SRC/Kbuild" ]]; then
+              sed -i 's/-dirty//g' "$KSU_SRC/Kbuild"
+              sed -i "s|^KSU_SRC :=.*|KSU_SRC := $KSU_SRC|" "$KSU_SRC/Kbuild"
+            fi
+          fi
 
       - name: Apply Fake Patches
         if: ${{ github.event.inputs.SUSFS_META != '-1' }}
         run: |
           kotlinc -script "$GITHUB_WORKSPACE/kernel_workspace/Numbersf_Kernel/scripts/PatchFakePatches.kts" apply "$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/common"
 
-      - name: Apply Patches KernelSU
+      - name: Apply Patches BakaSU
         env:
           FILE: ${{ github.event.inputs.FILE }}
         run: |
@@ -693,7 +703,6 @@ jobs:
           if [ "${{ github.event.inputs.SUSFS_META }}" != "-1" ]; then
             echo "正在拉取susfs补丁"
             cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ env.KANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch ./common/
-            cp ../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch ./FinaSU/
             cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
             cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
           fi
@@ -706,14 +715,7 @@ jobs:
             cp -r ../SukiSU_patch/other/zram/lz4k_oplus ./common/lib/
           fi
 
-          if [ "${{ github.event.inputs.SUSFS_META }}" != "-1" ]; then
-            cd ./FinaSU
-            sed -i 's|kernel/Makefile|kernel/Kbuild|g' ./10_enable_susfs_for_ksu.patch
-            patch -p1 < 10_enable_susfs_for_ksu.patch || true
-            cd ../common
-          else
-            cd ./common
-          fi
+          cd ./common
 
           if [ "$KMI" == "android13-5.15" ] && [ "$SUBLEVEL" -lt 123 ]; then
             echo "修复内核版本为5.15.0~5.15.123仅支持旧版C库造成的一些bug"
@@ -917,7 +919,7 @@ jobs:
             echo "❌ 未匹配到补丁，风驰内核暂未支持你的机型，请关闭后重试"
             exit 12
           fi
-
+          
       - name: Apply CVE_2026_43499 6.12
         if: ${{ github.event.inputs.CVE_2026_43499 == '6.12' && github.event.inputs.CVE_2026_43499 != '-1' }}
         continue-on-error: true
@@ -992,8 +994,15 @@ jobs:
           }
           trap 'inject_fake_config' EXIT
 
-          # KernelSU配置
+          # BakaSU配置
           set_config "CONFIG_KSU=y"
+          set_config "CONFIG_KPROBES=y"
+          set_config "CONFIG_KALLSYMS_ALL=y"
+          set_config "CONFIG_EXT4_FS=y"
+          set_config "CONFIG_HEADERS_INSTALL=y"
+          if [[ -n "$KSU_CUSTOM_TAG" ]]; then
+            set_config "CONFIG_KSU_FULL_NAME_FORMAT=\"${KSU_CUSTOM_TAG}\""
+          fi
 
           # KPM配置
           if [ "${{ github.event.inputs.KPM }}" = "KPM" ] || [ "${{ github.event.inputs.KPM }}" = "N/A" ]; then
@@ -1422,26 +1431,23 @@ jobs:
           mv -f oImage Image
           cp Image "${GITHUB_WORKSPACE}/AnyKernel3/Image"
 
-
-
-
-      - name: Download Latest KernelSU APK from CI
+      - name: Download Latest BakaSU APK from CI
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          MANAGER_ARTIFACT=manager
+          MANAGER_ARTIFACT=Manager-release
 
           echo "Using branch: $KSU_MANAGER_BRANCH"
           echo "Downloading artifact: $MANAGER_ARTIFACT"
 
-          run_id=$(gh api "repos/tiann/KernelSU/actions/workflows/build-manager.yml/runs?branch=$KSU_MANAGER_BRANCH&status=success&event=push&per_page=1" --jq '.workflow_runs[0].id' || echo "")
+          run_id=$(gh api "repos/Baka-SU/BakaSU/actions/workflows/build-manager.yml/runs?branch=$KSU_MANAGER_BRANCH&status=success&event=push&per_page=1" --jq '.workflow_runs[0].id' || echo "")
 
           if [[ -z "$run_id" ]]; then
             echo "No successful workflow run found on branch $KSU_MANAGER_BRANCH. Skipping download."
             exit 0
           fi
-          artifact_url=$(gh api "repos/tiann/KernelSU/actions/runs/$run_id/artifacts" | jq -r ".artifacts[] | select(.name == \"$MANAGER_ARTIFACT\") | .archive_download_url" | head -n1)
+          artifact_url=$(gh api "repos/Baka-SU/BakaSU/actions/runs/$run_id/artifacts" | jq -r ".artifacts[] | select(.name == \"$MANAGER_ARTIFACT\") | .archive_download_url" | head -n1)
 
           if [[ -z "$artifact_url" ]]; then
             echo "No artifact '$MANAGER_ARTIFACT' found in run $run_id. Skipping download."
@@ -1449,7 +1455,13 @@ jobs:
           fi
           echo "Downloading from: $artifact_url"
           curl -fL -H "Authorization: token $GITHUB_TOKEN" -o "${MANAGER_ARTIFACT}.zip" "$artifact_url"
-          unzip -j "${MANAGER_ARTIFACT}.zip" "*.apk" -d ./AnyKernel3/
+          echo "Trying to extract arm64-v8a APK..."
+          if unzip -l "${MANAGER_ARTIFACT}.zip" | grep -q "arm64-v8a.*\.apk"; then
+            unzip -j "${MANAGER_ARTIFACT}.zip" "*arm64-v8a*.apk" -d ./AnyKernel3/
+          else
+            echo "arm64-v8a APK not found, extracting generic APK..."
+            unzip -j "${MANAGER_ARTIFACT}.zip" "*.apk" -d ./AnyKernel3/
+          fi
 
       - name: Set zip Suffix
         id: suffix
@@ -1459,7 +1471,7 @@ jobs:
       - name: Upload AnyKernel3
         uses: actions/upload-artifact@v7
         with:
-          name: KernelSU ${{ env.CKERNEL_VERSION }} [${{ env.KSUVER }}]
+          name: BakaSU ${{ env.CKERNEL_VERSION }} [${{ env.KSUVER }}]
           path: ./AnyKernel3/*
 
       - name: Extract and Process ZRAM Module
