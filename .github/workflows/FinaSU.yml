@@ -1,4 +1,4 @@
-name: Build BakaSU oki
+name: Build FinaSU oki
 on:
   workflow_dispatch:
     inputs:
