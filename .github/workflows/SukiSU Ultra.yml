@@ -197,7 +197,10 @@ jobs:
           REMOVE_HASKELL: 'true'
           REMOVE_CODEQL: 'true'
         run: bash scripts/maximize-build-space.sh
-
+      - name: Configure Git
+        run: |
+          mkdir kernel_workspace && cd kernel_workspace
+          git clone https://github.com/Hefixs/Numbersf_Kernel.git
       - name: Extract Manifest Info
         id: extract_info
         env:
@@ -339,6 +342,11 @@ jobs:
           echo "Selected RE_KERNEL: ${{ github.event.inputs.RE_KERNEL }}"
           echo "Selected LZ4_UPDATE: ${{ github.event.inputs.LZ4_UPDATE }}"
           echo "Custom BUILD_TIME: $BUILD_TIME"
+          echo -n "BUILD_TIME Unicode: "
+          CHECK_TEXT="$BUILD_TIME" python3 "$GITHUB_WORKSPACE/kernel_workspace/Numbersf_Kernel/scripts/check_unicode_format.py" --mode build_time
+          echo "Custom SUFFIX: $SUFFIX"
+          echo -n "SUFFIX Unicode: "
+          CHECK_TEXT="$SUFFIX" python3 "$GITHUB_WORKSPACE/kernel_workspace/Numbersf_Kernel/scripts/check_unicode_format.py" --mode suffix
 
       - name: Check Disk Space
         run: df -h
@@ -366,6 +374,12 @@ jobs:
           if [ -n "$parent" ] && [ "$parent" != "Numbersf/Numbersf_Kernel" ]; then
             echo "::warning title=Source Warning::您使用的内核编译地址为非官方源，可能导致运行失败或内核异常。"
           fi
+
+      - name: Reject Check
+        run: |
+          REJ_CHECKER="$GITHUB_WORKSPACE/scripts/check_rejects.sh"
+          chmod +x "$REJ_CHECKER"
+          echo "REJ_CHECKER=$REJ_CHECKER" >> $GITHUB_ENV
 
       - name: Restore APT Cache
         id: apt-cache
