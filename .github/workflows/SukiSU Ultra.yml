@@ -340,10 +340,6 @@ jobs:
           echo "Selected LZ4_UPDATE: ${{ github.event.inputs.LZ4_UPDATE }}"
           echo "Custom BUILD_TIME: $BUILD_TIME"
           echo -n "BUILD_TIME Unicode: "
-          CHECK_TEXT="$BUILD_TIME" python3 "$GITHUB_WORKSPACE/kernel_workspace/Numbersf_Kernel/scripts/check_unicode_format.py" --mode build_time
-          echo "Custom SUFFIX: $SUFFIX"
-          echo -n "SUFFIX Unicode: "
-          CHECK_TEXT="$SUFFIX" python3 "$GITHUB_WORKSPACE/kernel_workspace/Numbersf_Kernel/scripts/check_unicode_format.py" --mode suffix
 
       - name: Check Disk Space
         run: df -h
