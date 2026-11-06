@@ -4,9 +4,9 @@ on:
     inputs:
       FILE:
         type: choice
-        description: "配置"
+        description: "机型"
         required: true
-        default: oneplus_13_b
+        default: oneplus_15
         options:
           - oneplus_nord_n30_se_5g_v
           - oneplus_10r_v
@@ -28,10 +28,12 @@ on:
           - oneplus_open_b
           - oneplus_nord_ce4_b
           - oneplus_n6_b
+          - oneplus_n6x_b
           - oneplus_12_b
           - oneplus_pad_go_2_b
           - oneplus_turbo_6x_b
           - oneplus_nord_ce4_lite_5g_b
+          - oneplus_nord_ce6
           - oneplus_nord_ce6_lite_b
           - oneplus_turbo_6v
           - oneplus_nord_4_b
@@ -63,21 +65,20 @@ on:
           - oneplus_pad_3_pro
           - oneplus_pad_4
           - oneplus_ace6_ultra
-      CVE_2026_43499:
+      SUSFS_CI:
         type: choice
-        description: "CVE_2026_43499补丁版本"
+        description: "SUSFS模块下载调用"
         required: true
-        default: 6.6
+        default: CI
         options:
-          - 6.12
-          - 6.6
-          - 6.1
+          - CI
+          - Release
           - N/A
       KPM:
         type: choice
         description: "内核模块实现方式"
         required: true
-        default: N/A
+        default: KPN
         options:
           - KPM
           - KPN
@@ -91,12 +92,12 @@ on:
         type: string
         description: "自定义构建时间(输入F使用UTCT或-1关闭)"
         required: false
-        default: "Fri Dec 12 11:37:03 UTC 2026"
+        default: "Wed Jul 15 11:18:49 UTC 2026"
       KSU_META:
         type: string
-        description: "管理器分支名(必填)/内置分支名(必填)/自定义版本标识(留空不修改)/回退分支提交哈希版本(留空不修改)"
+        description: "分支名(必填)/内置分支名(必填)/回退分支提交哈希版本(留空不修改)"
         required: false
-        default: "main/main/酷安AMXlil/"
+        default: "main/main/bycoolapkAMXlil/"
       LZ4_UPDATE:
         type: boolean
         description: "LZ4上游"
@@ -104,19 +105,28 @@ on:
         default: true
       ZRAM:
         type: string
-        description: "ZRAM(0关闭1开启)/算法名/大小"
+        description: "ZRAM(0关闭1开启)/算法名/大小//ZRAM"
         required: true
         default: "1/lz4kd/8589934592"
+      SUFFIX:
+        type: string
+        description: "自定义内核版本号后缀(不输入使用RAND_STR或-1关闭)"
+        required: false
+        default: ""
+      RESUBLEVEL:
+        description: "自定义内核等级欺骗"
+        required: false
+        default: ""
       FAST_BUILD:
         type: boolean
-        description: "是否启用极速构建"
+        description: "FAST_BUILD"
         required: true
         default: true
       LSM_BBG:
         type: boolean
         description: "BBG"
         required: true
-        default: true
+        default: false
       NETFILTER:
         type: boolean
         description: "网络功能拓展(NETFILTER)"
@@ -124,12 +134,12 @@ on:
         default: true
       CCM:
         type: boolean
-        description: "BBR+ECN"
+        description: "BBRv1+BBRv3+ECN"
         required: true
         default: true
       UNICODE_BYPASS:
         type: boolean
-        description: "UNICODE"
+        description: "Unicode"
         required: true
         default: true
       SCHED_HMBIRD:
@@ -139,14 +149,14 @@ on:
         default: true
       DROID_SPACES:
         type: boolean
-        description: "DroidSpaces"
+        description: "Linux容器支持(DroidSpaces)"
         required: true
-        default: true
+        default: false
       RE_KERNEL:
         type: boolean
         description: "Re-Kernel"
         required: true
-        default: true
+        default: false
       SUSFS_DEV:
         type: boolean
         description: "拉取SUSFS-DEV分支"
@@ -175,23 +185,50 @@ jobs:
       CCACHE_MAXSIZE: 5G
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Maximize Build Space
         if: ${{ github.event.inputs.SPACE_NOCLEAN == 'false' }}
-        uses: easimon/maximize-build-space@master
-        with:
-          root-reserve-mb: 8192
-          temp-reserve-mb: 2048
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-codeql: 'true'
+        env:
+          ROOT_RESERVE_MB: '8192'
+          TEMP_RESERVE_MB: '2048'
+          REMOVE_DOTNET: 'true'
+          REMOVE_ANDROID: 'true'
+          REMOVE_HASKELL: 'true'
+          REMOVE_CODEQL: 'true'
+        run: bash scripts/maximize-build-space.sh
 
       - name: Configure Git
         run: |
+          git config --global user.name "Numbersf"
+          git config --global user.email "263623064@qq.com"
           mkdir kernel_workspace && cd kernel_workspace
-          git clone https://github.com/Hefixs/Numbersf_Kernel.git
+
+          UPSTREAM_REPO="Numbersf/Action-Build"
+          UPSTREAM_BRANCH="BakaSU"
+          SELF_REPO="${{ github.repository }}"
+          SELF_BRANCH="${{ github.ref_name }}"
+
+          USE_REPO="$UPSTREAM_REPO"
+          USE_BRANCH="$UPSTREAM_BRANCH"
+
+          if [ "${SELF_REPO,,}" != "${UPSTREAM_REPO,,}" ]; then
+            git clone --filter=blob:none --no-checkout "https://github.com/${SELF_REPO}.git" -b "$SELF_BRANCH" probe
+            cd probe
+            git remote add upstream "https://github.com/${UPSTREAM_REPO}.git"
+            git fetch --filter=blob:none upstream "$UPSTREAM_BRANCH"
+
+            AHEAD=$(git rev-list --no-merges --count "upstream/${UPSTREAM_BRANCH}..HEAD")
+            echo "fork 独有的非 Merge 提交数: $AHEAD"
+
+            if [ "$AHEAD" -gt 0 ]; then
+              USE_REPO="$SELF_REPO"
+              USE_BRANCH="$SELF_BRANCH"
+            fi
+            cd .. && rm -rf probe
+          fi
+          echo "使用仓库: $USE_REPO @ $USE_BRANCH"
+          git clone "https://github.com/${USE_REPO}.git" -b "$USE_BRANCH" Action-Build
 
       - name: Extract Manifest Info
         id: extract_info
@@ -315,7 +352,10 @@ jobs:
           echo "Selected ANDROID_VERSION: ${{ env.ANDROID_VERSION }}"
           echo "Selected BUILD_METHOD: ${{ env.BUILD_METHOD }}"
           echo "Selected FILE: ${{ github.event.inputs.FILE }}"
-          echo "Selected CVE_2026_43499: ${{ github.event.inputs.CVE_2026_43499 }}"
+          echo "Selected SUSFS_CI: ${{ github.event.inputs.SUSFS_CI }}"
+          if [ "${{ github.event.inputs.SUSFS_CI }}" != "N/A" ]; then
+            echo "::warning title=SUSFS Not Required::当前管理器已自带附加模块，无需启用 SUSFS 模块，强制启用可能导致不开机。"
+          fi
           echo "Selected KPM: ${{ github.event.inputs.KPM }}"
           echo "Custom SUSFS_META: ${{ github.event.inputs.SUSFS_META }}"
           echo "Custom KSU_META: ${{ github.event.inputs.KSU_META }}"
@@ -332,10 +372,10 @@ jobs:
           echo "Selected LZ4_UPDATE: ${{ github.event.inputs.LZ4_UPDATE }}"
           echo "Custom BUILD_TIME: $BUILD_TIME"
           echo -n "BUILD_TIME Unicode: "
-          CHECK_TEXT="$BUILD_TIME" python3 "$GITHUB_WORKSPACE/kernel_workspace/Numbersf_Kernel/scripts/check_unicode_format.py" --mode build_time
+          CHECK_TEXT="$BUILD_TIME" python3 "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/check_unicode_format.py" --mode build_time
           echo "Custom SUFFIX: $SUFFIX"
           echo -n "SUFFIX Unicode: "
-          CHECK_TEXT="$SUFFIX" python3 "$GITHUB_WORKSPACE/kernel_workspace/Numbersf_Kernel/scripts/check_unicode_format.py" --mode suffix
+          CHECK_TEXT="$SUFFIX" python3 "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/check_unicode_format.py" --mode suffix
 
       - name: Check Disk Space
         run: df -h
@@ -360,13 +400,13 @@ jobs:
         run: |
           repo="${{ github.repository }}"; json=$(curl -s "https://api.github.com/repos/$repo")
           parent=$(echo "$json" | grep -o '"full_name": *"[^"]*"' | head -n 2 | tail -n 1 | sed 's/.*"full_name": *"\([^"]*\)".*/\1/')
-          if [ -n "$parent" ] && [ "$parent" != "Numbersf/Numbersf_Kernel" ]; then
+          if [ -n "$parent" ] && [ "$parent" != "Numbersf/Action-Build" ]; then
             echo "::warning title=Source Warning::您使用的内核编译地址为非官方源，可能导致运行失败或内核异常。"
           fi
 
       - name: Reject Check
         run: |
-          REJ_CHECKER="$GITHUB_WORKSPACE/kernel_workspace/Numbersf_Kernel/scripts/check_rejects.sh"
+          REJ_CHECKER="$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/check_rejects.sh"
           chmod +x "$REJ_CHECKER"
           echo "REJ_CHECKER=$REJ_CHECKER" >> $GITHUB_ENV
 
@@ -375,16 +415,23 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/.apt-pkg-cache
-          key: apt-cache-${{ runner.os }}-${{ github.ref_name }}-v5
+          key: apt-cache-${{ runner.os }}-${{ github.ref_name }}-v6
 
       - name: Install Dependencies
         run: |
-          export APT_PACKAGES="python3 git curl libelf-dev build-essential flex bison libssl-dev libncurses-dev liblz4-tool zlib1g-dev libxml2-utils rsync unzip gawk dos2unix kmod libdw-dev elfutils dwarves kotlin"
-          bash "$GITHUB_WORKSPACE/kernel_workspace/Numbersf_Kernel/scripts/cache_apt_pkgs.sh" ~/.apt-pkg-cache
+          export APT_PACKAGES="python3 git curl libelf-dev build-essential flex bison libssl-dev libncurses-dev lz4 zlib1g-dev libxml2-utils rsync unzip gawk dos2unix kmod libdw-dev elfutils dwarves"
+          bash "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/cache_apt_pkgs.sh" ~/.apt-pkg-cache
 
-      - name: Install Ccache-ECS
+      - name: Setup Kotlin
         run: |
-         LIB_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Numbersf_Kernel/lib"
+          KOTLIN_VERSION="2.4.10"
+          curl -sL "https://github.com/JetBrains/kotlin/releases/download/v${KOTLIN_VERSION}/kotlin-compiler-${KOTLIN_VERSION}.zip" -o kotlinc.zip
+          unzip -q kotlinc.zip -d "$HOME"
+          echo "$HOME/kotlinc/bin" >> "$GITHUB_PATH"
+
+      - name: Setup Ccache-ECS
+        run: |
+         LIB_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/lib"
          sudo cp -f "$LIB_DIR/ccache" /usr/bin/ccache && sudo chmod +x /usr/bin/ccache
 
       - name: Restore Ccache
@@ -393,7 +440,7 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ccache-${{ runner.os }}-${{ github.ref_name }}-${{ github.event.inputs.FILE }}-${{ env.BUILD_METHOD }}-${{ github.event.inputs.FAST_BUILD == 'true' && 'alpha' || 'beta' }}-16.8
+          key: ccache-${{ runner.os }}-${{ github.ref_name }}-${{ github.event.inputs.FILE }}-${{ env.BUILD_METHOD }}-${{ github.event.inputs.FAST_BUILD == 'true' && 'alpha' || 'beta' }}-17.0
 
       - name: Restore ThinLTO Cache
         if: ${{ github.event.inputs.BUILD_NOCACHE == 'false' && github.event.inputs.FAST_BUILD == 'true' }}
@@ -401,7 +448,7 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ${{ github.workspace }}/kernel_workspace/.thinlto-cache
-          key: thinlto-${{ runner.os }}-${{ github.ref_name }}-${{ github.event.inputs.FILE }}-16.8
+          key: thinlto-${{ runner.os }}-${{ github.ref_name }}-${{ github.event.inputs.FILE }}-17.0
 
       - name: Initialize Ccache
         if: ${{ github.event.inputs.BUILD_NOCACHE == 'false' }}
@@ -667,11 +714,6 @@ jobs:
             fi
           fi
 
-      - name: Apply Fake Patches
-        if: ${{ github.event.inputs.SUSFS_META != '-1' }}
-        run: |
-          kotlinc -script "$GITHUB_WORKSPACE/kernel_workspace/Numbersf_Kernel/scripts/PatchFakePatches.kts" apply "$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/common"
-
       - name: Apply Patches BakaSU
         env:
           FILE: ${{ github.event.inputs.FILE }}
@@ -717,32 +759,36 @@ jobs:
 
           cd ./common
 
+          if [ "${{ github.event.inputs.SUSFS_META }}" != "-1" ]; then
+            kotlin "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/SusfsCompat.kts" apply "$PWD"
+          fi
+
           if [ "$KMI" == "android13-5.15" ] && [ "$SUBLEVEL" -lt 123 ]; then
             echo "修复内核版本为5.15.0~5.15.123仅支持旧版C库造成的一些bug"
-            cp "${GITHUB_WORKSPACE}/kernel_workspace/Numbersf_Kernel/patches/fix_5.15.legacy" ./fix_5.15.legacy.patch
+            cp "${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/patches/fix_5.15.legacy" ./fix_5.15.legacy.patch
             patch -p1 < fix_5.15.legacy.patch
             echo "fix_5.15_patch完成"
           fi
 
           if [ "${{ github.event.inputs.SUSFS_META }}" != "-1" ]; then
             echo "正在打susfs补丁"
+            kotlin "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/SusfsContext.kts" "$PWD" "$PWD/50_add_susfs_in_gki-${{ env.KANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch"
             patch -p1 < 50_add_susfs_in_gki-${{ env.KANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch || true
             echo "susfs_patch完成"
           fi
           source $REJ_CHECKER
           check_rejects .
 
-      - name: Revert Fake Patches
-        if: ${{ github.event.inputs.SUSFS_META != '-1' }}
-        run: |
-          kotlinc -script "$GITHUB_WORKSPACE/kernel_workspace/Numbersf_Kernel/scripts/PatchFakePatches.kts" postfix "$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/common"
-          kotlinc -script "$GITHUB_WORKSPACE/kernel_workspace/Numbersf_Kernel/scripts/PatchFakePatches.kts" revert "$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/common"
+          if [ "${{ github.event.inputs.SUSFS_META }}" != "-1" ]; then
+            kotlin "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/SusfsCompat.kts" postfix "$PWD"
+            kotlin "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/SusfsCompat.kts" revert "$PWD"
+          fi
 
       # OGKI转换GKI，无需修改 dtbo 开机
       - name: Apply Convert HMBIRD_OGKI to HMBIRD_GKI
         if: ${{ (fromJSON(env.VERSIONLEVEL) > 6 || (fromJSON(env.VERSIONLEVEL) == 6 && fromJSON(env.PATCHLEVEL) >= 6)) && github.event.inputs.SCHED_HMBIRD == 'false' }}
         run: |
-          PATCH_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Numbersf_Kernel/patches"
+          PATCH_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/patches"
           cd kernel_workspace/kernel_platform/common
           for p in ./kernel/sched/hmbird* ./vendor/oplus/kernel/cpu/sched_ext/hmbird*; do
             [ -d "$p" ] && {
@@ -760,7 +806,7 @@ jobs:
       - name: Apply BBRv3
         if: ${{ github.event.inputs.CCM == 'true' && env.KMI != 'android16-6.12' }}
         run: |
-          PATCH_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Numbersf_Kernel/patches"
+          PATCH_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/patches"
           cd kernel_workspace/kernel_platform/common
           patch -p1 < "${PATCH_DIR}/bbrv3/0001-net-tcp-backport-BBRv3-to-$KMI.patch"
           if [ "$KMI" = "android12-5.10" ]; then
@@ -775,7 +821,7 @@ jobs:
       - name: Apply UNICODE_BYPASS
         if: ${{ github.event.inputs.UNICODE_BYPASS == 'true' }}
         run: |
-          PATCH_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Numbersf_Kernel/patches"
+          PATCH_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/patches"
           cd kernel_workspace/kernel_platform/common
           if [ "$VERSIONLEVEL" -lt 6 ]; then
             patch -p1 --forward < "${PATCH_DIR}/unicode_bypass_fix_6.1-.patch" || true
@@ -803,7 +849,7 @@ jobs:
           FILE: ${{ github.event.inputs.FILE }}
         if: ${{ github.event.inputs.DROID_SPACES == 'true' }}
         run: |
-          PATCH_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Numbersf_Kernel/patches"
+          PATCH_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/patches"
           cd kernel_workspace/kernel_platform/common
           # 注释掉原始的 sysv 结构体定义
           sed -i 's/^\(\t\)struct sysv_sem\b.*sysvsem;/\1\/\/ struct sysv_sem\t\t\tsysvsem;/' include/linux/sched.h
@@ -919,27 +965,6 @@ jobs:
             echo "❌ 未匹配到补丁，风驰内核暂未支持你的机型，请关闭后重试"
             exit 12
           fi
-          
-      - name: Apply CVE_2026_43499 6.12
-        if: ${{ github.event.inputs.CVE_2026_43499 == '6.12' && github.event.inputs.CVE_2026_43499 != '-1' }}
-        continue-on-error: true
-        run: |
-          wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/patches/cve-2026-43499-rtmutex-6.12.patch
-          patch -p1 -F 3 < cve-2026-43499-rtmutex-6.12.patch
-
-      - name: Apply CVE_2026_43499 6.6
-        if: ${{ github.event.inputs.CVE_2026_43499 == '6.6' && github.event.inputs.CVE_2026_43499 != '-1' }}
-        continue-on-error: true
-        run: |
-          wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/patches/cve-2026-43499-rtmutex-6.6.patch
-          patch -p1 -F 3 < cve-2026-43499-rtmutex-6.6.patch
-
-      - name: Apply CVE_2026_43499 6.1
-        if: ${{ github.event.inputs.CVE_2026_43499 == '6.1' && github.event.inputs.CVE_2026_43499 != '-1' }}
-        continue-on-error: true
-        run: |
-          wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/patches/cve-2026-43499-rtmutex-6.1.patch
-          patch -p1 -F 3 < cve-2026-43499-rtmutex-6.1.patch
 
       - name: Apply LSM_BBG
         if: ${{ github.event.inputs.LSM_BBG == 'true' }}
@@ -1071,6 +1096,7 @@ jobs:
           # DROID_SPACES配置*
           if [ "${{ github.event.inputs.DROID_SPACES }}" = "true" ]; then
             set_config "CONFIG_NTSYNC=y"
+            set_config "CONFIG_MACVLAN=y"
             set_config "CONFIG_SYSVIPC=y"
             set_config "CONFIG_DEVTMPFS=y"
             set_config "CONFIG_PID_NS=y"
@@ -1165,6 +1191,16 @@ jobs:
         run: |
           echo "Disabling GPUEB for MTK kernel 5.10"
           sed -i '/obj-y.*gpueb/d' kernel_workspace/kernel-5.10/drivers/gpu/mediatek/Makefile
+
+      - name: Fix libbpf for new glibc
+        run: |
+          cd kernel_workspace/kernel_platform/common
+          f="./tools/lib/bpf/libbpf.c"
+          if [ -f "$f" ]; then
+            sed -i -E 's/(\bres = )strstr\(sym_name, "\.llvm\."\)/\1(char *)strstr(sym_name, ".llvm.")/' "$f"
+            sed -i -E 's/(\bnext_path = )strchr\(s, '"'"':'"'"'\)/\1(char *)strchr(s, '"'"':'"'"')/' "$f"
+            grep -nE '\(char \*\)(strstr|strchr)' "$f" || echo "✅ 匹配失败，当前云控ubuntu版本无需此操作"
+          fi
 
       - name: Build Kernel FAST
         if: ${{ github.event.inputs.FAST_BUILD == 'true' }}
@@ -1413,8 +1449,8 @@ jobs:
         if: ${{ github.event.inputs.KPM != 'N/A' }}
         run: |
           KPM_DIR="${GITHUB_WORKSPACE}/kernel_workspace/SukiSU_patch/kpm"
-          # KPM_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Numbersf_Kernel/patches/kpm"
-          KPN_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Numbersf_Kernel/patches/kpn"
+          # KPM_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/patches/kpm"
+          KPN_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/patches/kpn"
           OUT_DIR="${GITHUB_WORKSPACE}/kernel_workspace/kernel_platform/out/Final-Image-Find"
           cd "${OUT_DIR}"
           if [ "${{ github.event.inputs.KPM }}" = "KPM" ]; then
@@ -1428,6 +1464,33 @@ jobs:
           fi
           mv -f oImage Image
           cp Image "${GITHUB_WORKSPACE}/AnyKernel3/Image"
+
+      - name: Download Latest SUSFS Module from CI
+        if: ${{ github.event.inputs.SUSFS_CI == 'CI' && github.event.inputs.SUSFS_META != '-1' }}
+        continue-on-error: true
+        run: |
+          LATEST_RUN_ID=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/sidex15/susfs4ksu-module/actions/runs?status=success&event=push" | \
+            jq -r '.workflow_runs[] | select(.head_branch == "v1.5.2+") | .id' | head -n 1)
+          if [ -z "$LATEST_RUN_ID" ]; then
+            echo "No successful run found for branch v1.5.2+"
+          else
+            ARTIFACT_URL=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/sidex15/susfs4ksu-module/actions/runs/$LATEST_RUN_ID/artifacts" | jq -r '.artifacts[0].archive_download_url')
+            if [ -n "$ARTIFACT_URL" ]; then
+              curl -L -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -o ksu_module_susfs_1.5.2+_CI.zip "$ARTIFACT_URL"
+              cp ksu_module_susfs_1.5.2+_CI.zip ./AnyKernel3/
+            else
+              echo "Failed to fetch artifact URL"
+            fi
+          fi
+
+      - name: Download Latest SUSFS Module from Release
+        if: ${{ github.event.inputs.SUSFS_CI == 'Release' && github.event.inputs.SUSFS_META != '-1' }}
+        continue-on-error: true
+        run: |
+          wget -O ksu_module_susfs_1.5.2+_Release.zip https://github.com/sidex15/ksu_module_susfs/releases/latest/download/ksu_module_susfs_1.5.2+.zip
+          cp ksu_module_susfs_1.5.2+_Release.zip ./AnyKernel3/
 
       - name: Download Latest BakaSU APK from CI
         continue-on-error: true
@@ -1477,7 +1540,7 @@ jobs:
         id: zram_find
         run: |
           set -e
-          ZRAM_ZIP="${GITHUB_WORKSPACE}/kernel_workspace/Numbersf_Kernel/ZRAM.zip"
+          ZRAM_ZIP="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/ZRAM.zip"
 
           if [ ! -f "$ZRAM_ZIP" ]; then
             echo "❌ 未找到 ZRAM.zip: $ZRAM_ZIP"
@@ -1560,14 +1623,14 @@ jobs:
         uses: actions/cache/save@v5
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ccache-${{ runner.os }}-${{ github.ref_name }}-${{ github.event.inputs.FILE }}-${{ env.BUILD_METHOD }}-${{ github.event.inputs.FAST_BUILD == 'true' && 'alpha' || 'beta' }}-16.8
+          key: ccache-${{ runner.os }}-${{ github.ref_name }}-${{ github.event.inputs.FILE }}-${{ env.BUILD_METHOD }}-${{ github.event.inputs.FAST_BUILD == 'true' && 'alpha' || 'beta' }}-17.0
 
       - name: Save ThinLTO Cache
         if: ${{ github.event.inputs.BUILD_NOCACHE == 'false' && github.event.inputs.FAST_BUILD == 'true' && steps.cache_size_check.outputs.thinlto_save == 'true' && steps.restore-thinlto.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v5
         with:
           path: ${{ github.workspace }}/kernel_workspace/.thinlto-cache
-          key: thinlto-${{ runner.os }}-${{ github.ref_name }}-${{ github.event.inputs.FILE }}-16.8
+          key: thinlto-${{ runner.os }}-${{ github.ref_name }}-${{ github.event.inputs.FILE }}-17.0
 
       - name: Post-build Disk Check
         run: df -h
