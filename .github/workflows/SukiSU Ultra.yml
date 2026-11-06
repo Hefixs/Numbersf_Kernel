@@ -377,7 +377,7 @@ jobs:
 
       - name: Reject Check
         run: |
-          REJ_CHECKER="$GITHUB_WORKSPACE/scripts/check_rejects.sh"
+          REJ_CHECKER="$GITHUB_WORKSPACE/kernel_workspace/Numbersf_Kernel/scripts/check_rejects.sh"
           chmod +x "$REJ_CHECKER"
           echo "REJ_CHECKER=$REJ_CHECKER" >> $GITHUB_ENV
 
