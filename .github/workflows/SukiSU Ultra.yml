@@ -78,7 +78,7 @@ on:
         type: choice
         description: "内核模块实现方式"
         required: true
-        default: KPN
+        default: KPM
         options:
           - KPM
           - KPN
@@ -151,12 +151,12 @@ on:
         type: boolean
         description: "Linux容器支持(DroidSpaces)"
         required: true
-        default: false
+        default: true
       RE_KERNEL:
         type: boolean
         description: "Re-Kernel"
         required: true
-        default: false
+        default: true
       SUSFS_DEV:
         type: boolean
         description: "拉取SUSFS-DEV分支"
